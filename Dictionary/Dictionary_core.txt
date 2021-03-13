@@ -1,0 +1,205 @@
+——————————————————————————————————————
+—- Raspberry PI3B+ Mailbox Language —-
+——————————————————————————————————————
+
+Following words allow user accessing mailbox 0 for communication
+from VC to ARM through its channels (only two of these are used: 
+PROPERTY-TAG channel and FRAME-BUFFER channel).
+
+——————————————————————————————————————
+—- MESSAGE structure —-
+——————————————————————————————————————
+
+The struct I choose to build the buffer is perfectly identical to 
+that one which mailbox expect, except for a data field immediately 
+before it. This data field implement the ITERATOR. The ITERATOR 
+helps user to access each tag of the buffer, printing it on screen 
+or getting its data values. 
+
+Struct name is MESSAGE and here is a map of it:
+
+		0	4	8	C	0
+MESSAGE:	+—————————————————————————————	+
+		| PADDING		|ITERAT	|
+		+—————————————————————————————	+
+BUFFER (0x…0):	|    Struct of the buffer	|
+		\\   (Look at Mailbox.txt)	\\
+		|				|
+		+—————————————————————————————	+
+
+——————————————————————————————————————
+—- Dictionary ‘core.f’ —-
+——————————————————————————————————————
+
+Here is a glossary of the Forth words and constants defined in 
+‘core.f’:
+
+(Constants)
+CELL 
+	Constant: cell of memory (4 Byte in Pi3B+ 32-kernel mode).
+	Value: 4FRAME-BUFFER	
+	Constant: mailbox channel for setting, testing and getting
+	frame buffer (unused since PI 2).
+	Value: 0x1MAIL_0	
+	Constant: base address for the mailbox 0 (VC->ARM).
+	Value: 0x3F00B880
+MAIL_FULL	
+	Constant: This bit is set in the status register if there 
+	is no space to write into the mailbox.
+	Value: 0x80000000
+MAIL_EMPTY	
+	Constant: This bit is set in the status register if there 
+	is nothing to read from the mailbox.
+	Value: 0x40000000PROPERTY-TAG	
+	Constant: mailbox channel for property tags.
+	Value: 0x8READ_OFFS
+	Constant: READ register offset from the mailbox base (MAIL_0).
+	Value: 0x0
+SIZE-ARRAY
+	Constant: size in byte of the matrix TAG-ID-NAME.
+	Value: 328 (if a cell of memory is 4 byte length)
+STATUS_OFFS
+	Constant: STATUS register offset from the mailbox base (MAIL_0).
+	Value: 0x18u32_t	
+	Constant: data size of words through mailbox.
+	Value: 4WRITE_OFFS
+	Constant: WRITE register offset from the mailbox base (MAIL_0).
+	Value: 0x20
+
+(Variable)
+MAIL_BASE
+	Variable: stores the current mailbox base address.
+
+(Array)
+TAG-ID-NAME
+	Array: is a matrix 41x2 (row*col); first column contains the
+	tag id, the second column contains its name (as a pointer to a 
+	word that prints it on screen).
+
+(Words)
+0ALLOT			( n —- )
+	Allots n bytes starting from HERE and initializes these to 0.16ALIGN 		( —- )
+	Aligns HERE to next 16 bytes aligned address.16ALIGNED 		( n —- n16aligned )
+	Returns the first multiple of 16 after n.ADDTAG 			( id size —- )
+	Adds a tag with id and size to the buffer and initializes its
+	value-buffer to 0.C, (COMMENTED)			( n —- )
+	BYTE-COMMA n. (Uncomment if not defined)
+CHECK-CHANNEL 		( channel data —- bool )
+	Checks if channel is the same of the channel-value in data 
+	(which should be the READ register data of the mailbox after 
+	a request).
+CHECK-STATUS		( bit_to_evaluate —- bool )
+	Checks in the STATUS register of the mailbox if the MAIL_EMPTY 
+	or MAIL_FULL bit is set.ENDTAG			( msg_addr —- msg_addr )
+	Adds the end-tag to the buffer pointed to by msg_addr, sets 
+	the buffer size and initializes the ITERATOR with pointer to 
+	the FIRST TAG of the buffer. Briefly closes the buffer.FIRST-TAG 		( msg_addr —- FIRST_tag_addr )
+	Returns the address of the first tag of the buffer pointed to
+	by msg_addr.
+GET 			( {values} id size nset_params nget_params —- )
+	Builds a GET tag with the specified id and size and sets its
+	nget_params parameters with specified values.GET-VALUES 		( tag_addr —- n1 … nk )
+	Puts in the stack k values stored in the tag pointed to by 
+	tag_addr, from the first to the last. Usage:
+		TAG GET-VALUESHASNEXT 		( msg_addr —- bool )
+	Iterator property: evaluates if the buffer pointed to by 
+	msg_addr have another tag after the one pointed to by the 
+	ITERATOR.ID 			( tag_addr —- id )
+	Returns the id value of the tag pointed to by tag_addr.INIT-VALUEBUFFER	( valuebuffer_size —- )
+	Initializes to 0 the value-buffer of the last tag added.
+	Value-buffer is 4byte padded.ITERATOR 		( msg_addr —- iterator_addr )
+	Returns the ITERATOR address of the buffer pointed to by 
+	msg_addr.MAILBOX 		( —- )
+	Updates the mailbox base address for the next requests 
+	(MAIL_BASE).MESSAGE (COMMENTED)	( —- msg_addr )
+	Allots the MESSAGE struct with the buffer to be sent through 
+	the mailbox; returns this buffer address.
+	This word is commented, since it’s better to use the next
+	definition. In cases in which needn’t take trace of the message,
+	this can be the faster solution. 
+	!!! MESSAGE must be followed by tag definitions and the ENDTAG
+	terminator. If it isn’t so, the structure could be compromised.
+	Usage:
+		MESSAGE
+MESSAGE 		( —- msg_addr )
+	Creates the MESSAGE struct with the buffer to be sent through 
+	the mailbox; returns this buffer address. This is the best 
+	solution since you can keep trace of this structure. 
+	!!! MESSAGE must be followed by tag definitions and the ENDTAG
+	terminator. If it isn’t so, the structure could be compromised.	
+	Usage:
+		MESSAGE M1
+NEXT 			( msg_addr —- msg_addr )
+	Iterator property: finds the next tag of the buffer pointed to
+	by msg_addr and update the ITERATOR.NEXT-TAG 		( msg_addr —- NEXT_tag )
+	Iterator property: returns the address of the (possible) next 
+	tag of the buffer pointed to by msg_addr.OFFSET 			( struct_addr —- msg_addr )
+	Returns the address of the buffer inside the MESSAGE pointed to
+	by msg_addr. Usage is OBLIGATORY before performing any action 
+	on the buffer. Usage:
+	MESSAGE M1
+	\ Adding tag and consuming msg_addr returned by MESSAGE.
+	M1 OFFSET TAG GET-VALUES
+PRINT-ID		( id —- )
+	Prints on stdout the name of the tag specified by id. First check
+	if the tag is 'Allocate buffer' or 'Release buffer', because their
+	ids (except for the mode bit) are indistinguishable. Then iterate
+	in the matrix TAG-ID-NAME to find the specified id and print.
+PRINT-MODE		( id —- )
+	Prints on stdout the command mode of the tag specified by id
+	(get, set or test).PRINT-VALUES 		( tag_addr —- )
+	Prints on screen k values stored in the tag pointed to by 
+	tag_addr, from the first to the last.
+READ			( channel —- {data} )
+	Waits until there is something to read in the READ register
+	of the mailbox and, if the channel-value of this register
+	is the same of channel, returns the data field, else nothing.
+	!!! Once accessing the READ register, this will clear.REG 			( offset —- reg_mailbox )
+	Returns register address at offset from the mailbox base
+	(MAIL_0).
+	Usage:
+	READ_OFFS REG	\ 0x3F00B880
+	WRITE_OFFS REG	\ 0x3F00B8A0RESCODE			( tag_addr —- res_code )
+	Returns the res/req code value of the tag pointed to by tag_addr.
+RESPONSE 		( msg_addr —- response_code )
+	Returns the response code of the message after it was been sent.
+SET 			( {values} id size nset_params nget_params —- )
+	Builds a SET tag with the specified id and size and sets its
+	nset_params parameters with specified values.SET-VALUES		( n1 n2 … nk nvalues tag_addr —- )
+	Sets nvalues at the tag pointed to by tag_addr, in the 
+	correct order.SHOW 			( tag_addr —- )
+	Prints on screen in order:
+		id value (u32_t)
+		value-buffer size (u32_t)
+		response/request code value (u32_t)
+		values
+	of the tag pointed to by tag_addr. Usage:
+SHOWALL 		( msg_addr —- )
+	Shows all the tags of the buffer pointed to by msg_addr in
+	order.STORETAG 		( addr msg_addr —- )
+	Iterator property: stores addr to the ITERATOR of the buffer
+	pointed to by msg_addr.TAG 			( msg_addr —- msg_addr CURRENT_tag )
+	Returns the address of the current tag stored in the 
+	ITERATOR of the buffer pointed to by msg_addr. Usage:
+	TAG SHOW NEXT TAG SHOW …TAGSIZE 		( tag_addr —- tag_size )
+	Returns the size of the tag pointed to by tag_addr
+	(size of the value-buffer + 3 other words).u32- 			( n —- n-4bytes )
+	Substracts 4(=u32_t) to n.u32,			( value —- )
+	COMMA 4(=u32_t) byte.u32!			( value addr —- )
+	Stores 4(=u32_t) byte value at addr.u32@ 			( addr —- val )
+	Fetches 4(=u32_t) byte from addr.u32* 			( n —- n*4 )
+	Multiplies 4(=u32_t) to n.u32/ 			( n —- n/4 )
+	Divides 4(=u32_t) to n.u32+ 			( n —- n+4bytes )
+	Adds 4(=u32_t) to n.UPDATE-SIZE 		( msg_addr —- )
+	Updates the size of the buffer pointed to by msg_addrVBSIZE 			( tag_addr —- valuebuffer_size )
+	Returns the value-buffer size of the tag pointed to by tag_addr.VBUFFER 		( tag_addr —- valuemsg_addr )
+	Returns the address of the value-buffer of the tag pointed 
+	to by tag_addr.
+WRITE			( msg_addr channel —- )
+	Waits until WRITE register of the mailbox is not full and then
+	writes msg_addr bitwise or channel in WRITE register.
+
+In the 'Print' section there are:
+tag_name-STR		( —- )
+	They are 41 words that perform the same action: prints on stdout
+	the name of the tag_name.

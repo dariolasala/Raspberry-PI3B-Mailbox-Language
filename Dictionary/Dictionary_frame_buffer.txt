@@ -1,0 +1,117 @@
+——————————————————————————————————————
+—- Dictionary ‘frame-buffer.f’ —-
+——————————————————————————————————————
+A Framebuffer is a piece of memory that is shared between 
+the CPU and the GPU. The CPU writes RGB pixels to the 
+buffer, and the GPU renders it to whatever output device 
+you have connected. Some specifics:
+	- depth: number of bits in every pixel;
+	- pitch: number of bytes that are in each row on screen;
+We can calculate:
+Pixel_Per_Row = (pitch * 8) / depth
+Coordinates(x,y) = (pitch * y) + (depth / 8) * x
+
+Here is a glossary of the Forth words and constants defined in 
+‘frame-buffer.f’:
+
+\\\\ General pourpose variable \\\\
+————————————————————————————————————
+MODE
+	Variable: stores the execution token of the three different 
+	mode:
+		- SET values
+		- GET values
+		- TEST values
+	to manage a frame buffer.
+
+\\\\ Utility words \\\\
+————————————————————————
+FRAMEBUFFER 		( —- )
+	Updates the management mode (MODE). 
+	Usage:
+		FRAMEBUFFER SET (or)
+		FRAMEBUFFER GET (or)
+		FRAMEBUFFER TEST
+TEST 			( {values} id size ntest_params nget_params —- )
+	Builds a TEST tag with the specified id and size and sets its
+	ntest_params parameters with specified values.
+
+\\\\ Tags \\\\
+———————————————ALLOCATE-BUFFER		( alignment —- )
+	Action to request a frame buffer with a specified byte
+	alignment.
+	Tag id: 0x00040001RELEASE-BUFFER		( —- )
+	Action to release and disable the frame buffer.
+	Tag id: 0x00048001BLANK-SCREEN		( 0=off/1=on —- )
+	Action to clean the screen. 
+	Tag id: 0x00040002W/H 			( {width height} —- )
+	Tag to get, set or test physical (display) size in pixel.
+	Tag id: 0x00040003
+VIRTUALW/H 		( {Vwidth Vheight} —- )
+	Tag to get, set or test virtual (display) size in pixel.
+	(Sizes are usually the same of the physical ones)
+	Tag id: 0x00040004
+DEPTH 			( {depth} —- )
+	Tag to get, set or test depth property.
+	Tag id: 0x00040005
+PIXEL-ORDER 		( {1=RGB/0=BGR} —- )
+	Tag to get, set or test the pixel order: RGB or BGR.
+	Tag id: 0x00040006
+ALPHA-MODE  		( {0=enabled/1=reversed/2=ignored} —- ) 
+	Tag to get, set or test the alpha-mode (opacity):
+		0x0: Alpha channel enabled (0 = fully opaque)
+		0x1: Alpha channel reversed (0 = fully transparent)
+		0x2: Alpha channel ignored
+	Tag id: 0x00040007PITCH 			( —- )
+	Tag to get pitch: bytes per line.
+	Tag id: 0x00040008VIRTUAL-OFFSET		( {X Y} —- )
+	Tag to get, set or test the virtual offset; coordinates
+	are in pixel.
+	Tag id: 0x00040009
+OVERSCAN		( {top bottom left right} —- )
+	Tag to get, set or test the overscan property;
+	coordinates are in pixel.
+	Tag id: 0x0004000A
+PALETTE 		( {offset length values} —- )
+	Tag to get, set or test RGBA palette values.
+	Tag id: 0x0004000BCURSOR-INFO		( width height 0 pointertopixel X Y —- )	Tag to set the cursor information; format is 32bpp
+	(ARGB).
+	Tag id: 0x00008010CURSOR-STATE 		( 1=visible/0=invisible X Y flags —- )	Tag to set the cursor state; flags control are:
+		0x0: display coords
+		0x1: framebuffer coords
+	Tag id: 0x00008011———————————————————————————————————————————————————————————————-—- I thought it might be useful to define a multi-tag struct	 —-
+—- for a like-standard configuration to simplify the 	 —-
+—- operations of setting, testing and getting a frame-buffer.—-
+—- This configuration include:					 —-
+—-	W/H Tag							 —-
+—-	VIRTUALW/H Tag						 —-
+—-	DEPTH Tag						 —-
+—-	PIXEL-ORDER Tag						 —-
+—-	ALPHA-MODE Tag						 —-
+—-	PITCH Tag (Only in GET mode)				 —-
+———————————————————————————————————————————————————————————————-(Word)CONFIG		( {config} —- )
+	Multi-tag struct to get, set or test frame buffer.
+	{config} in set or test mode must be a list of values 
+	in the following order:
+	(alpha_mode pixel_order depth virtual_size physical_size).
+	(Scroll down for some config example)
+
+——————————————————————————————————————————————————————————————————- I also defined some Forth words which provide some standard —-
+—- video resolution configurations.				   —-
+—————————————————————————————————————————————————————————————————(Words)
+(Some standard video resolutions for monitor)VGA		( —- )
+	Configuration:
+	640x480 size, 4bpp (16 colours), RGB, alpha enabledXGA 		( —- )
+	Configuration:
+	1024x768 size, 8bpp (256 colours), RGB, alpha enabledSXGA		( —- )
+	Configuration:
+	1280x1024 size, 32bpp (4Mld colours), RGB, alpha enabledFULL-HD		( —- )
+	Configuration:
+	1920x1080 size, 32bpp (4Mld colours), RGB, alpha enabled(Some standard video resolutions for TV and beamer)720p		( —- )
+	Configuration (HD-Ready):
+	1280x720 size, 24bpp (16Mln colours), RGB, alpha enabled1080p		( —- )
+	Configuration (Full HD):
+	1920x1080 size, 24bpp (16Mln colours), RGB, alpha enabled
+2160p 		( —- )
+	Configuration (4K):
+	3840x2160 size, 24bpp (16Mln colours), RGB, alpha enabled

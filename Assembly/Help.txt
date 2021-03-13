@@ -1,0 +1,20 @@
+- Per ottenere il file add.list:
+(1) arm-none-eabi-as file_name.s -o file_name.o
+(2) arm-none-eabi-objdump -D file_name.o > file_name.list
+
+- Per visualizzare il listato:
+(1) cat file_name.list
+
+Disassembly of section .text:
+
+00000000 <_start>:
+   0:	e49d0004 	pop	{r0}		; (ldr r0, [sp], #4)
+   4:	e49d1004 	pop	{r1}		; (ldr r1, [sp], #4)
+   8:	e0800001 	add	r0, r0, r1
+   c:	e52d0004 	push	{r0}		; (str r0, [sp, #-4]!)
+  10:	e12fff1e 	bx	lr
+
+- pijFORTH (ricorda di includere il ‘se-ans.f’)
+
+CREATE AS-ADD e49d0004 , e49d1004 , e0800001 , e52d0004 , e12fff1e ,
+: ADD AS-ADD JSR DROP ;

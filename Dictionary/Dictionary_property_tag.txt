@@ -1,0 +1,207 @@
+——————————————————————————————————————
+—- Dictionary ‘property-tags.f’ —-
+——————————————————————————————————————
+
+Here is a glossary of the Forth words and constants defined in 
+‘property-tags.f’:
+
+\\\\ General pourpose constants and variable \\\\
+——————————————————————————————————————————————————
+STATE-OFF 
+	Constant: used as ‘state’ value in some tags.
+	Value: 0x00000000
+STATE-ON  
+	Constant: used as ‘state’ value in some tags.
+	Value: 0x00000001
+STATE—OFF-WAIT  
+	Constant: used as ‘state’ value in some tags.
+	Value: 0x00000002
+STATE-ON-WAIT  
+	Constant: used as ‘state’ value in some tags.
+	Value: 0x00000003
+CURRENT-TAG
+	Variable: stores the parent tag id of the tag that is next 
+	to be added.
+	!!! Must be set before each child tag of this parent or once 
+	before all consecutive child tags of this parent. 
+	For example:
+		BOARD MODEL GET BOARD SERIAL GET
+		or (that is the same)
+		BOARD MODEL GET SERIAL GET MAC-ADDR GET
+
+\\\\ Board property tags \\\\
+——————————————————————————————
+(Parent tag)BOARD 		( —- )	Sets the CURRENT-TAG to board-tag. 
+	Tag id: 0x00010000.
+(Child tags)
+MAC-ADDR 	( —- id size nset_params nget_params )
+	Specific to get MAC-Address of the board. 
+	!!! When get or print values, remember to read these 
+	exchanged in order (n2 n1).
+	Tag id: 0x00010003
+MODEL		( —- id size nset_params nget_params )
+	Specific to get the model of the board. 
+	Tag id: 0x00010001
+REVISION	( —- id size nset_params nget_params )
+	Specific to get the revision code of the board. 
+	Tag id: 0x00010002
+SERIAL		( —- id size nset_params nget_params )
+	Specific to get serial number of the board. 
+	!!! When get or print values, remember to read these 
+	exchanged in order (n2 n1). 
+	Tag id: 0x00010004
+
+\\\\ Power property tags \\\\
+——————————————————————————————
+(Unique device IDs)CCP2TX 		- Constant value: 0x00000008I2C0 		- Constant value: 0x00000004I2C1 		- Constant value: 0x00000005I2C2 		- Constant value: 0x00000006SD-CARD 	- Constant value: 0x00000000SPI 		- Constant value: 0x00000007UART0 		- Constant value: 0x00000001UART1 		- Constant value: 0x00000002USB-HCD 	- Constant value: 0x00000003
+
+(Parent tag)
+POWER 		( —- )
+	Sets the CURRENT-TAG to power-tag.
+	Tag id: 0x00020000.
+
+(Child tags)
+PSTATE		( —- id size nset_params nget_params )
+	Specific to set/get the power state of a device.
+	!!! In set mode use only STATE-ON, STATE-OFF, STATE-ON-WAIT 
+	or STATE-OFF-WAIT.
+	Tag id: 0x00020001
+	Set params: device_ID state
+	Get params: device_ID
+TIMING		( —- id size nset_params nget_params )
+	Specific to get the time required after turning 
+	a device on before power is stable. 
+	Tag id: 0x00020002
+	Get params: device_ID
+
+\\\\ Clock property tags \\\\
+——————————————————————————————
+(Unique clock IDs)ARM 	- Constant value: 0x00000003CORE 	- Constant value: 0x00000004EMMC 	- Constant value: 0x00000001H264 	- Constant value: 0x00000006ISP 	- Constant value: 0x00000007PIXEL 	- Constant value: 0x00000009PWM 	- Constant value: 0x0000000ASDRAM 	- Constant value: 0x00000008UART 	- Constant value: 0x00000002V3D 	- Constant value: 0x00000005
+
+(Parent tag)
+CLOCK 		( —- )
+	Sets the CURRENT-TAG to clock-tag.
+	Tag id: 0x00030000
+
+(Child tags)
+MAXRATE		( —- id size nset_params nget_params )
+	Specific to get the max clock rate of a device. 
+	Tag id: 0x00030004
+	Get params: clock_ID
+MINRATE		( —- id size nset_params nget_params )
+	Constant: specific to get the min clock rate of a device. 
+	Tag id: 0x00030007
+	Get params: clock_ID
+RATE		( —- id size nset_params nget_params )
+	Specific to set/get the current clock rate of a 
+	device. 
+	!!! In set mode ’skip setting turbo’ must be 1.
+	Tag id: 0x00030002
+	Set params: clock_ID rate skip_setting_turbo
+	Get params: clock_ID
+STATE		( —- id size nset_params nget_params )
+	Specific to set/get the clock state of a device. 
+	Tag id: 0x00030001
+	Set params: clock_ID state
+	Get params: clock_ID
+TURBO		( —- id size nset_params nget_params )
+	Specific to set/get the clock turbo of a device. 
+	!!! In set mode ‘id’ should be 0 and ‘level’ STATE-ON or STATE-OFF.
+	Tag id: 0x00030009
+	Set params: clock_ID level
+	Get params: clock_ID
+
+\\\\ Voltage property tags \\\\
+————————————————————————————————
+(Unique voltage IDs)
+CORE_VOLTAGE 	- Constant value: 0x00000001SDRAM_C 	- Constant value: 0x00000002SDRAM_I 	- Constant value: 0x00000004SDRAM_P 	- Constant value: 0x00000003
+
+(Tags)VOLTAGE		( —- id size nset_params nget_params )
+	Tag to set voltage or get min/max voltage of a id-device.
+	Tag id: 0x00030003
+	Set params: voltage_ID value
+	Get params: voltage_ID
+MAX-VOLTAGE	( —- id size nset_params nget_params )
+	Tag to get the max voltage value of a device. 
+	Tag id: 0x00030005
+	Get params: voltage_ID
+MIN-VOLTAGE	( —- id size nset_params nget_params )
+	Tag to get the min voltage value of a device. 
+	Tag id: 0x00030008
+	Get params: voltage_ID
+
+\\\\ Memory management property tags \\\\
+——————————————————————————————————————————
+(Parent tag)
+MEMORY 		( —- )	Sets the CURRENT-TAG to memory-tag.
+	Tag id: 0x00030000
+
+(Child tags)
+ALLOCATE	( size align flags —- )
+	Action to allocate size contiguous byte of memory on the GPU
+	with the specified byte-alignement and flags.
+	!!! Use MEM_FLAGs for flags field. 
+	Tag id: 0x0003000C
+LOCK		( handle —- )
+	Action to lock buffer in place; return a bus address
+	!!! Must be done before memory can be accessed. 
+	Tag id: 0x0003000D
+RELEASE		( handle —- )
+	Action to free the memory buffer. 
+	Tag id: 0x0003000F
+UNLOCK		( handle —- )
+	Action to unlock buffer; content is retained.
+	Tag id: 0x0003000E
+(Memory flags (for ALLOCATE use only))MEM_FLAG_DISCARDABLE 		- Constant value: 0x00000001
+MEM_FLAG_NORMAL 		- Constant value: 0x00000000
+MEM_FLAG_DIRECT 		- Constant value: 0x00000100
+MEM_FLAG_COHERENT 		- Constant value: 0x00001000
+MEM_FLAG_L1_NONALLOCATING 	- Constant value: 0x00001100 \ =DIRECT|COHERENT
+MEM_FLAG_ZERO 			- Constant value: 0x00010000
+MEM_FLAG_NO_INIT 		- Constant value: 0x00100000
+MEM_FLAG_HINT_PERMALOCK 	- Constant value: 0x01000000\\\\ Other utilities property tags \\\\
+——————————————————————————————————————————
+(Tags)
+TEMPERATURE		( —- id size nset_params nget_params )
+	Tag to get the temperature of the SoC in thousandths 
+	of a degree Celsius.
+	!!! ‘temperature id’ should be 0.
+	Tag id: 0x00030006
+	Get params: noneMAX-TEMPERATURE		( —- id size nset_params nget_params )
+	Tag to get the maximum safe temperature of the SoC in 
+	thousandths of a degree Celsius.
+	!!! ‘temperature id’ should be 0.
+	Tag id: 0x0003000A
+	Get params: none
+FIRMWARE-REVISION	( —- id size nset_params nget_params )
+	Tag to get video-core firmware revision.
+	Tag id: 0x00000001
+	Get params: noneARM-MEMORY		( —- id size nset_params nget_params )
+	Tag to get the base address of ARM memory.
+	Tag id: 0x00010005
+	Get params: noneVC-MEMORY 		( —- id size nset_params nget_params )
+	Tag to get the base address of VideoCore memory.
+	Tag id: 0x00010006
+	Get params: noneCLOCKS			( —- id size nset_params nget_params )
+	Tag to get all clocks that exist in top-down breadth 
+	first order.
+	(After a request I find that there are 10 clocks, so
+	I set the value-buffer size of this tag to 96 byte.)
+	Tag id: 0x00010007
+	Get params: noneCOMMAND-LINE		( —- id size nset_params nget_params )	Tag to get ASCII command line string.
+	(Value-buffer size found by a request)
+	Tag id: 0x00050001
+	Get params: none
+DMA-CHANNELS		( —- id size nset_params nget_params )	Tag to get mask for DMA channels usable or not.
+	Tag id: 0x00060001.
+	Get params: noneEXECUTE-CODE		( function_pointer r0 … r5 —- )
+	Action to call the function at given (bus) address and 
+	with arguments given.
+	E.g. r0 = fn(r0, r1, r2, r3, r4, r5).
+	Tag id: 0x00030010DISPMANX-RESOURCE-MEM-HANDLE	( —- id size nset_params nget_params )	Tag to get the mem_handle associated with a created 
+	dispmanx_resource.
+	Tag id: 0x00030014
+	Get params: dispmanx_resource_handleEDID-BLOCK		( —- id size nset_params nget_params ) 	Tag to get the specified EDID block from attached 
+	HDMI/DVI device.
+	Tag id: 0x00030020
+	Get params: block_number
